@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciudades Hermanas de Guadalajara</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-curve"></script>
+
+<style>
+  :root {
+    --bg: #f4efe6;
+    --bg-deep: #ebe3d4;
+    --paper: #fbf7ef;
+    --ink: #1c1a17;
+    --ink-soft: #3d3833;
+    --ink-mute: #7a7168;
+    --line: #d8cdb8;
+    --line-soft: #e5dcc8;
+    --accent: #a8341f;        /* cantera roja de Guadalajara */
+    --accent-deep: #7d2416;
+    --gold: #c48a2a;           /* dorado cantera */
+    --gold-soft: #e4c688;
+    --teal: #1f5a5e;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ===================== SIDEBAR ===================== */
+  #sidebar {
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 400;
+    box-shadow: 4px 0 24px -12px rgba(60,40,20,0.15);
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .brand {
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1.title {
+    font-family: "Fraunces", serif;
+    font-weight: 400;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 12px 0 6px;
+    color: var(--ink);
+  }
+  h1.title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+    max-width: 32ch;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line-soft);
+    gap: 4px;
+  }
+  .stat .num {
+    font-family: "Fraunces", serif;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .stat .lbl {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-top: 6px;
+  }
+
+  /* Controls */
+  .controls {
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Continent tabs */
+  .continent-tabs {
+    padding: 14px 20px 6px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .cont-tab {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 9px 10px;
+    cursor: pointer;
+    transition: all .18s;
+    text-align: left;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    color: var(--ink);
+  }
+  .cont-tab:hover {
+    border-color: var(--ink-soft);
+    background: var(--paper);
+  }
+  .cont-tab.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .cont-tab .ct-name {
+    font-family: "Fraunces", serif;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  .cont-tab .ct-count {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    color: var(--ink-mute);
+  }
+  .cont-tab.active .ct-count { color: var(--gold-soft); }
+  .cont-tab .ct-accent {
+    position: absolute;
+    top: 7px; right: 7px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .cont-tab.active .ct-accent { background: var(--gold); }
+
+  .search-box {
+    position: relative;
+  }
+  .search-box svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    stroke: var(--ink-mute);
+    pointer-events: none;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 11px 14px 11px 34px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .2s, background .2s;
+  }
+  .search-box input:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+
+  .filter-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+
+  .select-box {
+    position: relative;
+  }
+  .select-box::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 6px; height: 6px;
+    border-right: 1.5px solid var(--ink-soft);
+    border-bottom: 1.5px solid var(--ink-soft);
+    transform: translateY(-75%) rotate(45deg);
+    pointer-events: none;
+  }
+  select {
+    width: 100%;
+    padding: 10px 34px 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .reset-btn {
+    padding: 0 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 2px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .reset-btn:hover { background: var(--accent); }
+
+  /* List */
+  .list-header {
+    padding: 14px 28px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .list-header .label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .list-header .count {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .city-list {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 16px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 4px;
+    align-content: start;
+  }
+  .city-list::-webkit-scrollbar { width: 6px; }
+  .city-list::-webkit-scrollbar-track { background: transparent; }
+  .city-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  .city-item {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background .15s;
+    min-width: 0;
+  }
+  .city-item:hover { background: var(--bg); }
+  .city-item.active {
+    background: var(--bg-deep);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  .flag-pill {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .city-text { min-width: 0; }
+  .city-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .city-year {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Footer */
+  .sidebar-footer {
+    padding: 14px 28px;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .sidebar-footer .origin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .origin-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(168,52,31,0.2);
+  }
+
+  /* ===================== MAP ===================== */
+  #map-wrap {
+    position: relative;
+    background: var(--bg-deep);
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+    background: #dcd2be;
+  }
+
+  /* Leaflet overrides */
+  .leaflet-container {
+    background: #e3d9c2;
+    font-family: "Inter", sans-serif;
+  }
+  .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 2px 12px rgba(60,40,20,0.15) !important;
+    border-radius: 2px !important;
+    overflow: hidden;
+  }
+  .leaflet-control-zoom a {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--line-soft) !important;
+    width: 32px !important; height: 32px !important;
+    line-height: 32px !important;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: var(--bg) !important;
+    color: var(--accent) !important;
+  }
+  .leaflet-control-attribution {
+    background: rgba(251,247,239,0.85) !important;
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 9px !important;
+    color: var(--ink-mute) !important;
+    padding: 4px 8px !important;
+  }
+  .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+
+  /* Popup */
+  .leaflet-popup-content-wrapper {
+    background: var(--paper);
+    border-radius: 3px;
+    box-shadow: 0 8px 32px -8px rgba(60,40,20,0.35), 0 0 0 1px var(--line);
+    padding: 0;
+  }
+  .leaflet-popup-content {
+    margin: 0;
+    width: 260px !important;
+    font-family: "Inter", sans-serif;
+  }
+  .leaflet-popup-tip {
+    background: var(--paper);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .leaflet-popup-close-button {
+    color: var(--ink-mute) !important;
+    font-size: 20px !important;
+    padding: 8px 10px 0 0 !important;
+  }
+
+  .popup-card {
+    padding: 18px 20px 16px;
+  }
+  .popup-card .pop-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .popup-card .pop-flag {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--line);
+  }
+  .popup-card h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 2px;
+    color: var(--ink);
+  }
+  .popup-card .pop-country {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+  .popup-card .pop-meta {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .popup-card .pop-meta .ml {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .popup-card .pop-meta .mv {
+    font-family: "Fraunces", serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .popup-card .pop-dist {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Markers */
+  .flag-marker-el {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid var(--paper);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .flag-marker-el:hover {
+    transform: scale(1.18);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35), 0 0 0 2px var(--accent);
+  }
+  .flag-marker-el.origin {
+    width: 36px; height: 36px;
+    border: 3px solid var(--paper);
+    box-shadow: 0 4px 16px rgba(168,52,31,0.4), 0 0 0 2px var(--accent), 0 0 0 8px rgba(168,52,31,0.15);
+  }
+  .leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  /* Origin pulse */
+  .origin-pulse {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: pulse 2.4s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.6); opacity: 0.9; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  /* Map overlay caption */
+  .map-caption {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    z-index: 500;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 14px 18px;
+    max-width: 300px;
+    box-shadow: 0 8px 24px -8px rgba(60,40,20,0.2);
+    border-radius: 2px;
+  }
+  .map-caption .cap-eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .map-caption .cap-text {
+    font-family: "Fraunces", serif;
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* Compass / decorative */
+  .map-corner {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 500;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--paper);
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .map-corner .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    top: 68px;
+    right: 20px;
+    z-index: 500;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    border-radius: 2px;
+    width: 200px;
+    box-shadow: 0 6px 20px -10px rgba(60,40,20,0.2);
+  }
+  .legend h4 {
+    margin: 0 0 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    padding: 4px 0;
+  }
+  .legend-row .sw {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-row .sw.origin { background: var(--accent); }
+  .legend-row .sw.hermana {
+    background: var(--paper);
+    border: 1.5px solid var(--ink-soft);
+  }
+  .legend-row .sw.route {
+    height: 2px;
+    border-radius: 0;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  /* Scale tuning */
+  @media (max-width: 1100px) {
+    #app { grid-template-columns: 320px 1fr; }
+    h1.title { font-size: 28px; }
+  }
+</style>
+</head>
+
+<body>
+
+<div id="app">
+  <!-- =============== SIDEBAR =============== -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="eyebrow">Atlas diplomático · Guadalajara</div>
+      <h1 class="title">Ciudades<br><em>hermanas</em></h1>
+      <p class="subtitle">Una cartografía de los hermanamientos suscritos por la Perla de Occidente desde 1969.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num" id="stat-ciudades">—</div>
+        <div class="lbl">Hermanamientos</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-paises">—</div>
+        <div class="lbl">Países</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-anios">—</div>
+        <div class="lbl">Años de historia</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input id="citySearch" list="cityList" placeholder="Buscar ciudad…" autocomplete="off" />
+        <datalist id="cityList"></datalist>
+      </div>
+      <button id="resetBtn" class="reset-btn">Restablecer vista global</button>
+    </div>
+
+    <div class="continent-tabs" id="continentTabs"></div>
+
+    <div class="list-header">
+      <div class="label" id="listLabel">Todas las regiones</div>
+      <div class="count" id="listCount">—</div>
+    </div>
+
+    <div class="city-list" id="cityList-ui"></div>
+
+    <div class="sidebar-footer">
+      <div class="origin">
+        <span class="origin-dot"></span>
+        <span>Origen · 20.67°N 103.34°W</span>
+      </div>
+      <div>GDL · MX</div>
+    </div>
+  </aside>
+
+  <!-- =============== MAP =============== -->
+  <div id="map-wrap">
+    <div id="map"></div>
+
+    <div class="map-corner">
+      <span class="dot"></span>
+      <span>N</span>
+      <span style="opacity:.4">·</span>
+      <span>Mercator</span>
+    </div>
+
+    <div class="legend">
+      <h4>Leyenda</h4>
+      <div class="legend-row"><div class="sw origin"></div> Guadalajara (origen)</div>
+      <div class="legend-row"><div class="sw hermana"></div> Ciudad hermana</div>
+      <div class="legend-row"><div class="sw route"></div> Ruta de hermanamiento</div>
+    </div>
+
+    <div class="map-caption">
+      <div class="cap-eyebrow">Nota del editor</div>
+      <div class="cap-text">«La hermandad entre ciudades es un pacto de memoria: un acuerdo para mirarse a través del océano.»</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// DATA
+// ================================================================
+const ciudades = [
+  { nombre:"Agaña", pais:"Guam", coords:[13.47,144.75], fecha:"29 julio 1976" },
+  { nombre:"Alajuela", pais:"Costa Rica", coords:[10.01,-84.21], fecha:"14 octubre 2011" },
+  { nombre:"Albuquerque", pais:"EE.UU.", coords:[35.08,-106.65], fecha:"27 marzo 2006" },
+  { nombre:"Cebú", pais:"Filipinas", coords:[10.31,123.88], fecha:"29 julio 1976" },
+  { nombre:"Changwon", pais:"Corea del Sur", coords:[35.22,128.68], fecha:"10 marzo 1997" },
+  { nombre:"Caracas", pais:"Venezuela", coords:[10.48,-66.90], fecha:"10 agosto 2012" },
+  { nombre:"Cigales", pais:"España", coords:[41.75,-4.70], fecha:"9 julio 1992" },
+  { nombre:"Cleveland", pais:"EE.UU.", coords:[41.49,-81.69], fecha:"29 julio 1976" },
+  { nombre:"Cracovia", pais:"Polonia", coords:[50.06,19.94], fecha:"27 enero 1978" },
+  { nombre:"Curitiba", pais:"Brasil", coords:[-25.42,-49.27], fecha:"29 noviembre 2019" },
+  { nombre:"Daejeon", pais:"Corea del Sur", coords:[36.35,127.38], fecha:"18 abril 1997" },
+  { nombre:"Downey", pais:"EE.UU.", coords:[33.94,-118.13], fecha:"10 septiembre 2024" },
+  { nombre:"El Paso", pais:"EE.UU.", coords:[31.76,-106.48], fecha:"8 septiembre 1998" },
+  { nombre:"Fresno", pais:"EE.UU.", coords:[36.73,-119.78], fecha:"22 abril 2022" },
+  { nombre:"Guadalajara", pais:"España", coords:[40.63,-3.16], fecha:"17 agosto 1982" },
+  { nombre:"Kansas City", pais:"EE.UU.", coords:[39.09,-94.57], fecha:"18 enero 1991" },
+  { nombre:"Kingston", pais:"Jamaica", coords:[17.97,-76.79], fecha:"29 junio 2023" },
+  { nombre:"Kioto", pais:"Japón", coords:[35.01,135.76], fecha:"20 octubre 1980" },
+  { nombre:"Laredo", pais:"EE.UU.", coords:[27.50,-99.50], fecha:"29 enero 2009" },
+  { nombre:"Lansing", pais:"EE.UU.", coords:[42.73,-84.55], fecha:"2 mayo 1997" },
+  { nombre:"Lima", pais:"Perú", coords:[-12.04,-77.04], fecha:"29 julio 1976" },
+  { nombre:"Malabo", pais:"Guinea Ecuatorial", coords:[3.75,8.78], fecha:"29 julio 1976" },
+  { nombre:"Milán", pais:"Italia", coords:[45.46,9.18], fecha:"11 septiembre 2015" },
+  { nombre:"Oñate", pais:"España", coords:[43.03,-2.40], fecha:"6 diciembre 2001" },
+  { nombre:"Panamá", pais:"Panamá", coords:[8.98,-79.51], fecha:"15 abril 2019" },
+  { nombre:"Phoenix", pais:"EE.UU.", coords:[33.44,-112.07], fecha:"31 enero 1969" },
+  { nombre:"Portland", pais:"EE.UU.", coords:[45.51,-122.67], fecha:"12 agosto 1983" },
+  { nombre:"San Antonio", pais:"EE.UU.", coords:[29.42,-98.49], fecha:"23 agosto 1974" },
+  { nombre:"San José USA", pais:"EE.UU.", coords:[37.33,-121.88], fecha:"4 mayo 2014" },
+  { nombre:"San José CR", pais:"Costa Rica", coords:[9.92,-84.09], fecha:"17 agosto 1982" },
+  { nombre:"San Petersburgo", pais:"Rusia", coords:[59.93,30.36], fecha:"19 mayo 1994" },
+  { nombre:"San Salvador", pais:"El Salvador", coords:[13.69,-89.21], fecha:"29 julio 1976" },
+  { nombre:"Santo Domingo", pais:"República Dominicana", coords:[18.48,-69.93], fecha:"29 julio 1976" },
+  { nombre:"Sevilla", pais:"España", coords:[37.38,-5.98], fecha:"27 marzo 1969" },
+  { nombre:"Tegucigalpa", pais:"Honduras", coords:[14.07,-87.19], fecha:"29 julio 1976" },
+  { nombre:"Tucson", pais:"EE.UU.", coords:[32.22,-110.97], fecha:"29 marzo 1972" },
+  { nombre:"Vinnytsia", pais:"Ucrania", coords:[49.23,28.46], fecha:"19 mayo 1994" },
+  { nombre:"Wroclaw", pais:"Polonia", coords:[51.10,17.03], fecha:"19 mayo 1994" },
+  { nombre:"Xiamen", pais:"China", coords:[24.47,118.08], fecha:"15 agosto 2003" }
+];
+
+const banderaMap = {
+  "México":"mx","EE.UU.":"us","España":"es","Corea del Sur":"kr","Japón":"jp",
+  "China":"cn","Costa Rica":"cr","Perú":"pe","Brasil":"br","Ucrania":"ua",
+  "Polonia":"pl","Honduras":"hn","El Salvador":"sv","República Dominicana":"do",
+  "Venezuela":"ve","Guinea Ecuatorial":"gq","Jamaica":"jm","Panamá":"pa",
+  "Italia":"it","Filipinas":"ph","Guam":"gu","Rusia":"ru"
+};
+const codigoBandera = p => banderaMap[p] || null;
+
+// Parse year from fecha
+const yearOf = f => parseInt(f.match(/\d{4}/)?.[0] || "0");
+
+// Haversine distance
+function distanciaKm(a, b) {
+  const R = 6371;
+  const toR = d => d * Math.PI / 180;
+  const dLat = toR(b[0] - a[0]);
+  const dLng = toR(b[1] - a[1]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+}
+
+// ================================================================
+// MAP
+// ================================================================
+const guadalajara = [20.6736, -103.3440];
+
+const map = L.map('map', {
+  zoomControl: false,
+  worldCopyJump: true,
+  attributionControl: true,
+  minZoom: 2,
+  maxZoom: 10
+}).setView([22, -30], 3);
+
+L.control.zoom({ position: "bottomright" }).addTo(map);
+
+// Light, elegant tile (CartoDB Positron — no auth required)
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  attribution: '© OpenStreetMap · © CARTO',
+  maxZoom: 19,
+  subdomains: "abcd"
+}).addTo(map);
+
+// Warm sepia tint to harmonize with cantera palette
+document.getElementById('map').style.filter = 'sepia(0.25) saturate(0.7) hue-rotate(-8deg) contrast(0.95) brightness(1.03)';
+
+// ================================================================
+// ORIGIN MARKER
+// ================================================================
+const originIcon = L.divIcon({
+  className: "flag-icon",
+  html: `
+    <div style="position:relative;">
+      <div class="flag-marker-el origin" style="background-image:url('https://flagcdn.com/w80/mx.png');"></div>
+      <div class="origin-pulse"></div>
+    </div>`,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18]
+});
+
+const originMarker = L.marker(guadalajara, { icon: originIcon, zIndexOffset: 1000 })
+  .addTo(map)
+  .bindPopup(`
+    <div class="popup-card">
+      <div class="pop-eyebrow">
+        <span class="pop-flag" style="background-image:url('https://flagcdn.com/w40/mx.png');"></span>
+        Origen · México
+      </div>
+      <h3>Guadalajara</h3>
+      <div class="pop-country">Jalisco, México · La Perla de Occidente</div>
+      <div class="pop-meta">
+        <span class="ml">Fundación</span>
+        <span class="mv">14 febrero 1542</span>
+      </div>
+    </div>
+  `, { maxWidth: 300, className: "fancy-popup" });
+
+// ================================================================
+// SISTER CITIES
+// ================================================================
+let markers = [];
+let rutas = [];
+let activeId = null;
+let hasUserInteracted = false;
+const bounds = L.latLngBounds(guadalajara, guadalajara);
+
+const ROUTE_BASE_STYLE = {
+  color: "#a8341f",
+  weight: 1.4,
+  opacity: 0.55,
+  dashArray: "4 3",
+  lineCap: "round"
+};
+
+const ROUTE_INACTIVE_STYLE = {
+  color: "#a8341f",
+  weight: 1,
+  opacity: 0.12,
+  dashArray: "4 3",
+  lineCap: "round"
+};
+
+const ROUTE_ACTIVE_STYLE = {
+  color: "#7d2416",
+  weight: 3,
+  opacity: 1,
+  dashArray: null,
+  lineCap: "round"
+};
+
+function rutaAerea(origen, destino) {
+  // Curve offset scales with distance for elegance
+  const midLat = (origen[0] + destino[0]) / 2;
+  const midLng = (origen[1] + destino[1]) / 2;
+  const dist = distanciaKm(origen, destino);
+  const curvature = Math.min(30, 8 + dist / 900);
+
+  const curva = L.curve(
+    ["M", origen, "Q", [midLat + curvature, midLng], destino],
+    { ...ROUTE_BASE_STYLE, className: "ruta-line" }
+  ).addTo(map);
+
+  // Leaflet.curve puede carecer de _updateBounds; setStyle(weight) la invoca.
+  // Definimos un no-op para evitar que falle al recalcular estilos dinámicos.
+  if (typeof curva._updateBounds !== "function") {
+    curva._updateBounds = function() {};
+  }
+
+  return curva;
+}
+
+ciudades.forEach((c, i) => {
+  const code = codigoBandera(c.pais);
+  const icon = L.divIcon({
+    className: "flag-icon",
+    html: `<div class="flag-marker-el" style="background-image:url('https://flagcdn.com/w80/${code}.png');"></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
+  });
+
+  const dist = distanciaKm(guadalajara, c.coords);
+
+  const marker = L.marker(c.coords, { icon })
+    .addTo(map)
+    .bindPopup(`
+      <div class="popup-card">
+        <div class="pop-eyebrow">
+          <span class="pop-flag" style="background-image:url('https://flagcdn.com/w40/${code}.png');"></span>
+          Ciudad hermana · ${c.pais}
+        </div>
+        <h3>${c.nombre}</h3>
+        <div class="pop-country">${c.pais}</div>
+        <div class="pop-meta">
+          <span class="ml">Hermanamiento</span>
+          <span class="mv">${c.fecha}</span>
+        </div>
+        <div class="pop-dist">↔ ${dist.toLocaleString('es-MX')} km de Guadalajara</div>
+      </div>
+    `, { maxWidth: 300 });
+
+  marker.ciudadId = i;
+  marker.ciudadNombre = c.nombre;
+  marker.pais = c.pais;
+
+  const ruta = rutaAerea(guadalajara, c.coords);
+  ruta.pais = c.pais;
+  ruta.ciudadId = i;
+
+  markers.push(marker);
+  rutas.push(ruta);
+  bounds.extend(c.coords);
+
+  marker.on("click", () => focusCity(i));
+});
+
+// ================================================================
+// CONTINENT MAPPING
+// ================================================================
+const paisContinente = {
+  "México":"América","EE.UU.":"América","Costa Rica":"América","Perú":"América",
+  "Brasil":"América","Honduras":"América","El Salvador":"América",
+  "República Dominicana":"América","Venezuela":"América","Jamaica":"América","Panamá":"América",
+  "España":"Europa","Polonia":"Europa","Ucrania":"Europa","Italia":"Europa","Rusia":"Europa",
+  "Corea del Sur":"Asia/Oceanía","Japón":"Asia/Oceanía","China":"Asia/Oceanía",
+  "Filipinas":"Asia/Oceanía","Guam":"Asia/Oceanía",
+  "Guinea Ecuatorial":"África"
+};
+const CONTINENTES = ["Todos","América","Europa","Asia/Oceanía","África"];
+const contView = {
+  "Todos":       { center:[22,-30], zoom:3 },
+  "América":     { center:[15,-90], zoom:3 },
+  "Europa":      { center:[48,12],  zoom:4 },
+  "Asia/Oceanía":{ center:[25,125], zoom:3 },
+  "África":      { center:[3,9],    zoom:4 }
+};
+
+// ================================================================
+// SIDEBAR UI
+// ================================================================
+const listEl = document.getElementById('cityList-ui');
+const datalist = document.getElementById('cityList');
+const tabsEl = document.getElementById('continentTabs');
+let activeContinent = "Todos";
+
+const anios = Math.max(...ciudades.map(c => yearOf(c.fecha))) - Math.min(...ciudades.map(c => yearOf(c.fecha)));
+document.getElementById('stat-ciudades').textContent = ciudades.length;
+document.getElementById('stat-paises').textContent = new Set(ciudades.map(c => c.pais)).size;
+document.getElementById('stat-anios').textContent = anios;
+
+function buildTabs() {
+  tabsEl.innerHTML = "";
+  CONTINENTES.forEach(cont => {
+    const count = cont === "Todos"
+      ? ciudades.length
+      : ciudades.filter(c => paisContinente[c.pais] === cont).length;
+    const btn = document.createElement('button');
+    btn.className = 'cont-tab' + (cont === activeContinent ? ' active' : '');
+    btn.dataset.cont = cont;
+    btn.innerHTML = `
+      <span class="ct-accent"></span>
+      <div class="ct-name">${cont}</div>
+      <div class="ct-count">${String(count).padStart(2,'0')} ciudades</div>
+    `;
+    btn.addEventListener('click', () => setContinent(cont));
+    tabsEl.appendChild(btn);
+  });
+}
+
+function renderList() {
+  listEl.innerHTML = "";
+  const visibles = ciudades
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => activeContinent === "Todos" || paisContinente[c.pais] === activeContinent)
+    .sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, 'es'));
+
+  visibles.forEach(({ c, i }) => {
+    const code = codigoBandera(c.pais);
+    const year = yearOf(c.fecha);
+    const row = document.createElement('div');
+    row.className = 'city-item';
+    row.dataset.idx = i;
+    if (i === activeId) row.classList.add('active');
+    row.innerHTML = `
+      <div class="flag-pill" style="background-image:url('https://flagcdn.com/w40/${code}.png');"></div>
+      <div class="city-text">
+        <div class="city-name" title="${c.nombre} · ${c.pais}">${c.nombre}</div>
+        <div class="city-year">${year} · ${c.pais}</div>
+      </div>
+    `;
+    row.addEventListener('click', () => focusCity(i));
+    row.querySelector('.flag-pill').addEventListener('click', e => {
+      e.stopPropagation();
+      activeId === i ? clearSelection() : focusCity(i);
+    });
+    listEl.appendChild(row);
+  });
+
+  document.getElementById('listCount').textContent = String(visibles.length).padStart(2, '0');
+  document.getElementById('listLabel').textContent = activeContinent === "Todos" ? "Todas las regiones" : activeContinent;
+}
+
+function setContinent(cont) {
+  hasUserInteracted = true;
+  activeContinent = cont;
+  activeId = null;
+
+  document.querySelectorAll('.cont-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.cont === cont);
+  });
+
+  markers.forEach(m => {
+    const vis = cont === "Todos" || paisContinente[m.pais] === cont;
+    if (vis) map.addLayer(m); else map.removeLayer(m);
+  });
+  rutas.forEach(r => {
+    const vis = cont === "Todos" || paisContinente[r.pais] === cont;
+    if (vis) {
+      map.addLayer(r);
+      r.setStyle(ROUTE_BASE_STYLE);
+    } else {
+      map.removeLayer(r);
+    }
+  });
+
+  map.closePopup();
+  renderList();
+
+  const v = contView[cont];
+  if (v) map.flyTo(v.center, v.zoom, { duration: 1.4 });
+}
+
+// Datalist
+ciudades.forEach(c => {
+  const opt = document.createElement('option');
+  opt.value = c.nombre;
+  datalist.appendChild(opt);
+});
+
+// ================================================================
+// INTERACTIONS
+// ================================================================
+function focusCity(i) {
+  hasUserInteracted = true;
+  const c = ciudades[i];
+  const visibleInFilter = activeContinent === "Todos" || paisContinente[c.pais] === activeContinent;
+  if (!visibleInFilter) return;
+
+  activeId = i;
+  const m = markers[i];
+
+  // Highlight list
+  document.querySelectorAll('.city-item').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.idx) === i);
+    if (parseInt(el.dataset.idx) === i) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  });
+
+  // Highlight route
+  rutas.forEach((r, idx) => {
+    const vis = activeContinent === "Todos" || paisContinente[r.pais] === activeContinent;
+    if (!vis) {
+      if (map.hasLayer(r)) map.removeLayer(r);
+      return;
+    }
+    if (!map.hasLayer(r)) map.addLayer(r);
+    r.setStyle({
+      ...(idx === i ? ROUTE_ACTIVE_STYLE : ROUTE_INACTIVE_STYLE)
+    });
+  });
+
+  map.flyTo(c.coords, 5, { duration: 1.4 });
+  setTimeout(() => m.openPopup(), 1200);
+}
+
+function clearSelection() {
+  hasUserInteracted = true;
+  activeId = null;
+  document.querySelectorAll('.city-item').forEach(el => el.classList.remove('active'));
+  rutas.forEach(r => {
+    const vis = activeContinent === "Todos" || paisContinente[r.pais] === activeContinent;
+    if (vis) {
+      if (!map.hasLayer(r)) map.addLayer(r);
+      r.setStyle(ROUTE_BASE_STYLE);
+    } else if (map.hasLayer(r)) {
+      map.removeLayer(r);
+    }
+  });
+  map.closePopup();
+}
+
+function resetView() {
+  document.getElementById('citySearch').value = "";
+  setContinent("Todos");
+}
+
+document.getElementById('citySearch').addEventListener('change', function() {
+  const idx = ciudades.findIndex(c => c.nombre.toLowerCase() === this.value.toLowerCase());
+  if (idx >= 0) focusCity(idx);
+});
+
+document.getElementById('resetBtn').addEventListener('click', resetView);
+
+// Animate routes in sequence on load
+function animateRoutes() {
+  rutas.forEach((r, i) => {
+    const vis = activeContinent === "Todos" || paisContinente[r.pais] === activeContinent;
+    if (!vis) return;
+    r.setStyle({ ...ROUTE_BASE_STYLE, opacity: 0 });
+    setTimeout(() => {
+      if (hasUserInteracted || activeId !== null) return;
+      if (!map.hasLayer(r)) return;
+      r.setStyle(ROUTE_BASE_STYLE);
+    }, 40 * i + 600);
+  });
+}
+
+// Init
+buildTabs();
+renderList();
+animateRoutes();
+
+// Gentle intro fly-in
+setTimeout(() => {
+  map.flyTo([22, -30], 3, { duration: 2.2 });
+}, 200);
+</script>
+
+</body>
+</html>
